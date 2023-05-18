@@ -1,6 +1,8 @@
 import streamlit as st
 from streamlit_chat import message
 import requests
+from query_gpt import query_gpt
+from add_context import add_faq_context
 
 st.set_page_config(page_title="Streamlit Chat - Demo", page_icon=":robot:")
 
@@ -17,9 +19,13 @@ if "past" not in st.session_state:
     st.session_state["past"] = []
 
 
-def query(payload):
+def query(q: dict):
     # response = requests.post(API_URL, headers=headers, json=payload)
-    return {"generated_text": "Hello"}  # response.json()
+
+    messages = add_faq_context()
+    message = [{"role": "user", "content": q.get("inputs").get("text")}]
+
+    return {"generated_text": query_gpt(messages + message)}  # response.json()
 
 
 def get_text():
@@ -45,6 +51,10 @@ if user_input:
     st.session_state.generated.append(output["generated_text"])
 
 if st.session_state["generated"]:
+    # for i in range(len(st.session_state["generated"])):
+    #     message(st.session_state["past"][i], is_user=True, key=str(i) + "_user")
+    #     message(st.session_state["generated"][i], key=str(i))
+
     for i in range(len(st.session_state["generated"]) - 1, -1, -1):
         message(st.session_state["generated"][i], key=str(i))
         message(st.session_state["past"][i], is_user=True, key=str(i) + "_user")
