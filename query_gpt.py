@@ -1,6 +1,7 @@
 import yaml
 from yaml.loader import SafeLoader
 import openai
+import os
 from add_context import add_faq_context
 
 
@@ -10,6 +11,7 @@ def query_gpt(messages: list) -> dict:
 
     openai.organization = "org-wAmGkOif5fmluOzslipK8k9B"
     openai.api_key = secrets["key"]
+    os.environ["OPENAI_API_KEY"] = secrets["key"]
 
     completion = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -20,13 +22,3 @@ def query_gpt(messages: list) -> dict:
 
     return completion.get("choices")[0].get("message").get("content")
 
-
-# messages = add_faq_context()
-# message = [
-#     {
-#         "role": "user",
-#         "content": "Vad är Samfrakt?",
-#     }
-# ]
-
-# print(query_gpt(messages=messages + message))

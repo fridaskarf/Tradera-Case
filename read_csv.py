@@ -1,7 +1,10 @@
 import pandas as pd
 
-df = pd.read_csv(
-    "C:\Temp\Tradera-Case\knowledge-base-export_Tradera - Vanliga frågor och svar_2023-04-04_091722.csv"
-)
 
+file_path = "faq.csv"
+
+
+df = pd.read_csv(file_path)
+if "source_column" not in df.columns:
+    df["source_column"] = ['https://info.tradera.com/' for _ in range(len(df.index))]
 print(df)
