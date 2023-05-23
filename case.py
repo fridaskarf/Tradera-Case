@@ -2,41 +2,33 @@ import streamlit as st
 from streamlit_chat import message
 import requests
 from query_gpt import query_gpt
-from add_context import add_faq_context
-from read_xml import read_xml
 from doc_embedding_store import DocumentEmbeddingStore, FileToEmbed
 import itertools
 
 # Embedding our documents
-doc_store = DocumentEmbeddingStore()
-csv_files = [
-    FileToEmbed(
-        file_path="./faq.csv",
-        source="https://info.tradera.com/",
-        args={"fieldnames": ["title", "content"]},
-    )
-]
+if "doc_store" not in st.session_state:
+    doc_store = DocumentEmbeddingStore()
+    csv_files = [
+        (FileToEmbed(
+            file_path="./faq.csv",
+            source="https://info.tradera.com/",
+        ), ","),
+        (FileToEmbed(
+            file_path="./xml_content.csv",
+            source="https://info.tradera.com/",
+        ), ";")
+    ]
 
-csv_docs = []
-for file in csv_files:
-    csv_docs += doc_store.load_csv_file(file)
+    csv_docs = []
+    for file, sep in csv_files:
+        csv_docs += doc_store.load_csv_file(file, sep)
+    print("done loading")
+    doc_store.embed_documents(csv_docs)
+    print("done embedding")
+    st.session_state["doc_store"] = doc_store
+else:
+    doc_store = st.session_state["doc_store"]
 
-html_links = read_xml()[:5]
-html_files = []
-for html_link in html_links:
-    html_files.append(
-        FileToEmbed(
-            file_path=html_link,
-            source=html_link,
-        )
-    )
-html_docs = {}
-for file in html_files:
-    html_docs.update(doc_store.load_html_content(file))
-
-all_docs = csv_docs + list(html_docs.values())
-
-doc_store.embed_documents(all_docs)
 
 # Init app
 st.set_page_config(page_title="Tradera chatbot", page_icon="./tradera_icon.png")
@@ -52,8 +44,8 @@ if "past" not in st.session_state:
 
 context = "Du är Traderas chatbot och kan endast svara på frågor rörande Tradera. "
 context += "Du måste svara på samma språk som användaren använder. "
-context += "Om svaret på frågan inte finns i chatthistoriken, säg att du inte har svaret på frågan och referera till hemsidan https://info.tradera.com/"
-
+context += "Om svaret på frågan inte finns i chatthistoriken, säg att du inte har svaret på frågan och källhänvisa till hemsidan https://info.tradera.com/"
+context += "Länka aldrig till en websida som du inte explicit ombeds att källhänvisa till"
 
 def query(q: dict) -> dict:
     # parse query dict
@@ -61,9 +53,11 @@ def query(q: dict) -> dict:
     past_user_inputs = q.get("inputs").get("past_user_inputs")
     generated_responses = q.get("inputs").get("generated_responses")
 
+    #response = agent.run(user_input)
+
     relevant_documents = doc_store.get_relevant_documents(query=user_input)
     messages = [{"role": "system", "content": context}]
-
+    print("found relevant documents")
     for resp, user in itertools.zip_longest(
         generated_responses, past_user_inputs, fillvalue=""
     ):
@@ -112,16 +106,16 @@ def query(q: dict) -> dict:
             messages.append(
                 {
                     "role": "system",
-                    "content": "Detta är information som kan vara relaterat till frågan från Traderas hemsida: "
-                    + content,
+                    "content": f"Om frågan är relaterat till följande rubrik, '{content}',\
+                      lägg till en källhänvisning till svaret genom att skriva 'Läs mer på {doc.metadata['source']}'"
                 }
             )
 
     messages.append({"role": "user", "content": user_input})
     print(messages)
     response = query_gpt(messages=messages)
-
-    return {"generated_text": response}
+    print("query done")
+    return {"generated_text": str(response)}
 
 
 user_input = st.text_input("Skriv frågor här: ", "", key="input")

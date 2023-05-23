@@ -17,7 +17,6 @@ from yaml import SafeLoader
 import requests
 from bs4 import BeautifulSoup
 
-
 @dataclass
 class FileToEmbed:
     file_path: str
@@ -33,20 +32,21 @@ class DocumentEmbeddingStore:
 
         self.vector_store = Chroma(embedding_function=OpenAIEmbeddings())
 
-    def load_csv_file(self, file: FileToEmbed) -> List[Document]:
-        df = pd.read_csv(file.file_path)
+    def load_csv_file(self, file: FileToEmbed, sep: str) -> List[Document]:
+        df = pd.read_csv(file.file_path, on_bad_lines='skip', sep=sep)
 
         documents = []
         for _, row in df.iterrows():
             title = str(row["title"])
             content = str(row["content"])
+            source = row.get("source", "https://info.tradera.com/")
             full_content = title + " " + content
             document = Document(
                 page_content=full_content,
                 metadata=dict(
                     title=title,
                     content=content,
-                    source="https://info.tradera.com/",
+                    source=source,
                 ),
             )
             documents.append(document)
@@ -58,7 +58,8 @@ class DocumentEmbeddingStore:
         soup = BeautifulSoup(response.content, "html.parser")
         documents = {}
 
-        for paragraph in soup.find_all("p"):
+        headers = soup.find_all(["h1", "h2", "h3"])
+        for paragraph in headers:
             content = paragraph.text
             source = file.file_path
             document = Document(
@@ -79,7 +80,7 @@ class DocumentEmbeddingStore:
         self.vector_store = self.vector_store.from_documents(documents=documents)
 
     def embed_documents(self, documents: List[Document]):
-        self.vector_store = self.vector_store.from_documents(documents=documents)
+        self.vector_store = self.vector_store.from_documents(documents=documents, embedding=OpenAIEmbeddings())
 
     def get_relevant_documents(self, query: str) -> List[Document]:
         relevant_documents = self.vector_store.similarity_search(query=query, k=7)
