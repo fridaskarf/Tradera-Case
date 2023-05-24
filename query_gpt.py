@@ -9,7 +9,7 @@ def query_gpt(messages: list, max_tokens: int = 1024) -> dict:
     with open("./secrets.yml") as credentials_file:
         secrets = yaml.load(credentials_file, SafeLoader)
 
-    openai.organization = "org-wAmGkOif5fmluOzslipK8k9B"
+    openai.organization = secrets["org"]
     openai.api_key = secrets["key"]
     os.environ["OPENAI_API_KEY"] = secrets["key"]
 
