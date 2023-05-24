@@ -8,3 +8,6 @@
 
 ## Running
 ```streamlit run main.py```
+
+## Example
+![alt text](https://github.com/fridaskarf/Tradera-Case/blob/main/example_chat.png)
