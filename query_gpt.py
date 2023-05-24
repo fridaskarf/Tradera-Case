@@ -2,11 +2,10 @@ import yaml
 from yaml.loader import SafeLoader
 import openai
 import os
-from add_context import add_faq_context
 from openai import error
 
 
-def query_gpt(messages: list) -> dict:
+def query_gpt(messages: list, max_tokens: int = 1024) -> dict:
     with open("./secrets.yml") as credentials_file:
         secrets = yaml.load(credentials_file, SafeLoader)
 
@@ -21,7 +20,7 @@ def query_gpt(messages: list) -> dict:
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
-                max_tokens=1024,
+                max_tokens=max_tokens,
                 temperature=0.4,
             )
             retry = 11

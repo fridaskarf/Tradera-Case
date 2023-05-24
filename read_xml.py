@@ -4,7 +4,6 @@ import requests
 import pandas as pd
 
 
-
 # Reading the data inside the xml file to a variable under the name  data
 def read_xml(xml_path="XML Sitemap.xml"):
     with open(xml_path, "r") as f:
@@ -24,14 +23,12 @@ def read_xml(xml_path="XML Sitemap.xml"):
     return links
 
 
-def save_html_content(links):
-
+def save_html_content(links: list, file_path: str = "xml_content.csv"):
     documents = []
 
     for link in links:
         response = requests.get(link)
         soup = BeautifulSoup(response.content, "html.parser")
-
 
         content = soup.find_all(["h1", "h2", "h3", "p"])
         cnt = 0
@@ -43,16 +40,19 @@ def save_html_content(links):
                 temp_idx = cnt + 1
                 while temp_idx < len(content) and content[temp_idx].name == "p":
                     paragraph = content[temp_idx].text
-                    documents.append({"header": header, "paragraph": paragraph, "source": link})
+                    documents.append(
+                        {"header": header, "paragraph": paragraph, "source": link}
+                    )
                     temp_idx += 1
                 cnt = temp_idx
-                
-            else: cnt += 1
+
+            else:
+                cnt += 1
 
     df = pd.DataFrame.from_dict(documents)
-    df.to_csv("xml_content.csv", ";")
-        
+    df.to_csv(file_path, ";")
 
-if __name__== "__main__":
+
+if __name__ == "__main__":
     links = read_xml()
     save_html_content(links[3:])
